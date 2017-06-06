@@ -10,6 +10,12 @@ public class DesktopLauncher {
 		config.title = "Project Name";
 		config.width = 666;
 		config.height = 444;
-		new LwjglApplication(new BdxApp(), config);
+		config.foregroundFPS = 60;
+		config.backgroundFPS = 60;
+		config.vSyncEnabled = false;
+
+		BdxApp app = new BdxApp();
+		app.TICK_RATE = config.foregroundFPS;
+		new LwjglApplication(app, config);
 	}
 }

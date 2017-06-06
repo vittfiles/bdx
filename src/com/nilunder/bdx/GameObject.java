@@ -52,7 +52,7 @@ public class GameObject implements Named{
 	
 	public HashMap<String, JsonValue> props;
 	public boolean frustumCulling;
-	
+
 	public ArrayListGameObject children;
 	
 	public ArrayListNamed<Component> components;
@@ -70,7 +70,7 @@ public class GameObject implements Named{
 	private Vector3f scale;
 	private Mesh mesh;
 	private static java.util.Random logicCounterRandom;
-	
+
 	public enum BodyType {
 		NO_COLLISION,
 		STATIC,
@@ -127,7 +127,7 @@ public class GameObject implements Named{
 			}
 			return ret;
 		}
-		
+
 	}
 
 	public GameObject() {

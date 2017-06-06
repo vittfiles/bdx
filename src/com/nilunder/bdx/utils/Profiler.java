@@ -13,7 +13,6 @@ import com.nilunder.bdx.GameObject;
 import com.nilunder.bdx.Text;
 import com.nilunder.bdx.gl.Viewport;
 
-import javax.vecmath.Vector2f;
 import javax.vecmath.Vector3f;
 
 
@@ -259,14 +258,14 @@ public class Profiler{
 		nanos = new HashMap<String, Long>();
 		percents = new HashMap<String, Float>();
 		tickTimes = new ArrayList<Long>();
-		for (int i=0; i < Bdx.TICK_RATE; i++){
-			tickTimes.add((long) Bdx.TICK_TIME);
+		for (int i = 0; i < Bdx.TICK_RATE; i++){				// Magic number 60s here because that's the default, and
+			tickTimes.add((long) Bdx.delta());		// Because the FPS is "known" to BDX after the scenes are added
 		}
 		
 		frequency = Bdx.TICK_RATE;
 		counter = 1;
 		avgTickRate = Bdx.TICK_RATE;
-		avgTickTime = Bdx.TICK_TIME;
+		avgTickTime = Bdx.delta();
 		
 		tickInfoVisible = true;
 		propsVisible = true;
@@ -520,9 +519,10 @@ public class Profiler{
 		for (long l : tickTimes){
 			sumTickTimes += l;
 		}
+
 		avgTickRate = Bdx.TICK_RATE * 1000000000f / sumTickTimes;
 		avgTickTime = 1000 / avgTickRate;
-		
+
 		if (gl.isEnabled()){
 			gl.updateStats();
 		}
@@ -603,7 +603,7 @@ public class Profiler{
 				gl.updateTexts();
 			}
 		}
-		counter += frequency * Bdx.TICK_TIME;
+		counter += frequency * Bdx.delta();
 		
 		scene.viewport.apply();
 	}
@@ -638,7 +638,7 @@ public class Profiler{
 		buffer.append(" ");
 		addString(buffer, timeUnits, 3, false, ' ');
 		buffer.append(" ");
-		addFloat(buffer, avgTickRate, 4, 1, ' ');
+		addFloat(buffer, avgTickRate, 5, 1, ' ');
 		buffer.append(" ");
 		buffer.append(valueUnits);
 		

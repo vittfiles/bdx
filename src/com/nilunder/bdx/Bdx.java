@@ -141,8 +141,7 @@ public class Bdx{
 		}
 	}
 
-	public static final int TICK_RATE = 60;
-	public static final float TICK_TIME = 1f/TICK_RATE;
+	public static int TICK_RATE = 60;
 	public static final int VERT_STRIDE = 8;
 	public static float time;
 	public static String firstScene;
@@ -217,8 +216,6 @@ public class Bdx{
 		availableTempBuffers = new HashMap<Float, RenderBuffer>();
 		requestedRestart = false;
 
-		profiler.start("__gpu wait");
-
 	}
 
 	public static void main(){
@@ -228,7 +225,7 @@ public class Bdx{
 		profiler.stop("__gpu wait");
 
 		if (profiler.subsystemsVisible())
-			profiler.deltaTimes.put("__gpu wait", (long) Math.max(profiler.deltaTimes.get("__gpu wait") - (TICK_TIME * 1000000000), 0));
+			profiler.deltaTimes.put("__gpu wait", (long) Math.max(profiler.deltaTimes.get("__gpu wait") - (delta() * 1000000000), 0));
 
 		if (restartOnExport && Gdx.files.internal("finishedExport").lastModified() > startMillis) {
 			startMillis = System.currentTimeMillis();
@@ -253,7 +250,7 @@ public class Bdx{
 
 		// -------- Update Input --------
 
-		time += TICK_TIME * timeSpeed;
+		time += delta() * timeSpeed;
 		++GdxProcessor.currentTick;
 		fingers.clear();
 		for (Finger f : allocatedFingers){
@@ -516,7 +513,7 @@ public class Bdx{
 			scene.viewport.update(width, height);
 		}
 
-		if (profiler.visible()){
+		if (profiler != null && profiler.visible()){
 			profiler.updateViewport(width, height);
 		}
 
@@ -525,6 +522,10 @@ public class Bdx{
 
 	public static void restart(){
 		requestedRestart = true;
+	}
+
+	public static float delta(){
+		return Gdx.graphics.getDeltaTime();
 	}
 
 }

@@ -1,7 +1,6 @@
 package com.nilunder.bdx;
 
 import com.nilunder.bdx.utils.Named;
-import com.nilunder.bdx.utils.Random;
 
 public class Component<T extends GameObject> implements Named {
 

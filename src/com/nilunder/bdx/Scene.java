@@ -28,6 +28,8 @@ import com.bulletphysics.collision.dispatch.CollisionWorld;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
 import com.bulletphysics.collision.narrowphase.PersistentManifold;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
+import com.bulletphysics.dynamics.DynamicsWorld;
+import com.bulletphysics.dynamics.InternalTickCallback;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.Transform;
@@ -52,6 +54,7 @@ public class Scene implements Named{
 	public ArrayListNamed<Camera> cameras;
 	public HashMap<Model, Vector2f> modelToFrame;
 	public boolean visible;
+	public int maxSubsteps;
 
 	private FileHandle scene;
 
@@ -86,6 +89,7 @@ public class Scene implements Named{
 	private boolean fogOn;
 	private boolean valid;
 	private boolean requestedEnd;
+	private float requiredStepsFloat;
 
 	public Scene(String name){
 		this(Gdx.files.internal("bdx/scenes/" + name + ".bdx"), instantiators.get(name));
@@ -184,10 +188,20 @@ public class Scene implements Named{
 		
 		json = new JsonReader().parse(scene);
 		name = json.get("name").asString();
-		
+
+		maxSubsteps = json.get("maxSubsteps").asInt();
+
 		world = new DiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
 		world.setDebugDrawer(new Bullet.DebugDrawer(json.get("physviz").asBoolean()));
 		gravity(new Vector3f(0, 0, -json.get("gravity").asFloat()));
+		world.setInternalTickCallback(new InternalTickCallback() {
+			@Override
+			public void internalTick(DynamicsWorld dynamicsWorld, float v) {
+				Bdx.profiler.start("__logic");
+				runObjectLogic();
+				Bdx.profiler.stop("__logic");
+			}
+		}, null);
 
 		float[] ac = json.get("ambientColor").asFloatArray();
 		ambientLight(new Color(ac[0], ac[1], ac[2], 1));
@@ -847,14 +861,14 @@ public class Scene implements Named{
 						c.logicCounter -= 1;
 						c.state.main();
 					}
-					c.logicCounter += c.logicFrequency * Bdx.TICK_TIME;
+					c.logicCounter += c.logicFrequency * Bdx.delta();
 				}
 			}
 			if (g.logicCounter >= 1) {
 				g.logicCounter -= 1;
 				g.main();
 			}
-			g.logicCounter += g.logicFrequency * Bdx.TICK_TIME;
+			g.logicCounter += g.logicFrequency * Bdx.delta();
 		}
 
 		for (GameObject g : toBeAdded) {
@@ -907,29 +921,41 @@ public class Scene implements Named{
 		
 		if (!paused){
 
-			Bdx.profiler.start("__logic");
-			runObjectLogic();			
-			Bdx.profiler.stop("__logic");
+			float timeStep = Bdx.delta() * Bdx.physicsSpeed;
 
-			updateVisuals();
-			for (Camera cam : cameras) {
-				if (cam == camera || cam.renderToTexture)		// Update camera if it's the main scene camera, or if it's rendering to texture
-					cam.update();
+			requiredStepsFloat += timeStep / (1f / Bdx.TICK_RATE);
+
+			int requiredSteps = (int) requiredStepsFloat;
+
+			if (requiredSteps > maxSubsteps) {
+				requiredSteps = maxSubsteps;
+				requiredStepsFloat = 0;
+			} else
+				requiredStepsFloat -= requiredSteps;
+
+			for (int i = 0; i < requiredSteps; i++) {
+
+				updateVisuals();
+				for (Camera cam : cameras) {
+					if (cam == camera || cam.renderToTexture)		// Update camera if it's the main scene camera, or if it's rendering to texture
+						cam.update();
+				}
+				Bdx.profiler.stop("__scene");
+
+				try{
+					world.stepSimulation(Bdx.delta(), 1, 1f / Bdx.TICK_RATE);
+				}catch (NullPointerException e){
+					throw new RuntimeException("PHYSICS ERROR: Detected collision between Static objects set to Ghost, with Triangle Mesh bounds: Keep them seperated, or use different bounds.");
+				}
+				Bdx.profiler.stop("__physics");
+
+				updateChildBodies();
+				Bdx.profiler.stop("__scene");
+
+				detectCollisions();
+				Bdx.profiler.stop("__physics");
+
 			}
-			Bdx.profiler.stop("__scene");
-
-			try{
-				world.stepSimulation(Bdx.TICK_TIME * Bdx.physicsSpeed, 0);
-			}catch (NullPointerException e){
-				throw new RuntimeException("PHYSICS ERROR: Detected collision between Static objects set to Ghost, with Triangle Mesh bounds: Keep them seperated, or use different bounds.");
-			}
-			Bdx.profiler.stop("__physics");
-
-			updateChildBodies();
-			Bdx.profiler.stop("__scene");
-
-			detectCollisions();
-			Bdx.profiler.stop("__physics");
 			
 		}
 
