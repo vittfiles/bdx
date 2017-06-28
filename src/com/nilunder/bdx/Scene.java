@@ -28,8 +28,6 @@ import com.bulletphysics.collision.dispatch.CollisionWorld;
 import com.bulletphysics.collision.dispatch.DefaultCollisionConfiguration;
 import com.bulletphysics.collision.narrowphase.PersistentManifold;
 import com.bulletphysics.dynamics.DiscreteDynamicsWorld;
-import com.bulletphysics.dynamics.DynamicsWorld;
-import com.bulletphysics.dynamics.InternalTickCallback;
 import com.bulletphysics.dynamics.RigidBody;
 import com.bulletphysics.dynamics.constraintsolver.SequentialImpulseConstraintSolver;
 import com.bulletphysics.linearmath.Transform;
@@ -40,6 +38,8 @@ import com.nilunder.bdx.inputs.*;
 import com.nilunder.bdx.components.*;
 import com.nilunder.bdx.GameObject.ArrayListGameObject;
 import com.nilunder.bdx.utils.Color;
+
+import static com.nilunder.bdx.Bdx.delta;
 
 public class Scene implements Named{
 
@@ -194,14 +194,6 @@ public class Scene implements Named{
 		world = new DiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfiguration);
 		world.setDebugDrawer(new Bullet.DebugDrawer(json.get("physviz").asBoolean()));
 		gravity(new Vector3f(0, 0, -json.get("gravity").asFloat()));
-		world.setInternalTickCallback(new InternalTickCallback() {
-			@Override
-			public void internalTick(DynamicsWorld dynamicsWorld, float v) {
-				Bdx.profiler.start("__logic");
-				runObjectLogic();
-				Bdx.profiler.stop("__logic");
-			}
-		}, null);
 
 		float[] ac = json.get("ambientColor").asFloatArray();
 		ambientLight(new Color(ac[0], ac[1], ac[2], 1));
@@ -861,14 +853,14 @@ public class Scene implements Named{
 						c.logicCounter -= 1;
 						c.state.main();
 					}
-					c.logicCounter += c.logicFrequency * Bdx.delta();
+					c.logicCounter += c.logicFrequency * delta();
 				}
 			}
 			if (g.logicCounter >= 1) {
 				g.logicCounter -= 1;
 				g.main();
 			}
-			g.logicCounter += g.logicFrequency * Bdx.delta();
+			g.logicCounter += g.logicFrequency * delta();
 		}
 
 		for (GameObject g : toBeAdded) {
@@ -921,7 +913,7 @@ public class Scene implements Named{
 		
 		if (!paused){
 
-			float timeStep = Bdx.delta() * Bdx.physicsSpeed;
+			float timeStep = delta() * Bdx.physicsSpeed;
 
 			requiredStepsFloat += timeStep / (1f / Bdx.TICK_RATE);
 
@@ -935,6 +927,13 @@ public class Scene implements Named{
 
 			for (int i = 0; i < requiredSteps; i++) {
 
+				Bdx.profiler.start("__logic");
+				runObjectLogic();
+				Bdx.profiler.stop("__logic");
+
+				if (requiredSteps > 1 && i < requiredSteps - 1)
+					Bdx.updateInput();								// If we're not on the first substep, then we'll need to update input again
+
 				updateVisuals();
 				for (Camera cam : cameras) {
 					if (cam == camera || cam.renderToTexture)		// Update camera if it's the main scene camera, or if it's rendering to texture
@@ -943,7 +942,7 @@ public class Scene implements Named{
 				Bdx.profiler.stop("__scene");
 
 				try{
-					world.stepSimulation(Bdx.delta(), 1, 1f / Bdx.TICK_RATE);
+					world.stepSimulation(Bdx.delta() / requiredSteps * Bdx.physicsSpeed, 0, 1f / Bdx.TICK_RATE);
 				}catch (NullPointerException e){
 					throw new RuntimeException("PHYSICS ERROR: Detected collision between Static objects set to Ghost, with Triangle Mesh bounds: Keep them seperated, or use different bounds.");
 				}
@@ -956,7 +955,7 @@ public class Scene implements Named{
 				Bdx.profiler.stop("__physics");
 
 			}
-			
+
 		}
 
 	}

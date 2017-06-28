@@ -159,9 +159,9 @@ public class Bdx{
 	public static float physicsSpeed;
 	public static float timeSpeed;
 	public static boolean restartOnExport = false;
+	public static ArrayList<Finger> allocatedFingers;
 
 	private static boolean advancedLightingOn;
-	private static ArrayList<Finger> allocatedFingers;
 	private static ModelBatch modelBatch;
 	private static ModelBatch depthBatch;
 	private static RenderBuffer frameBuffer;
@@ -218,6 +218,17 @@ public class Bdx{
 
 	}
 
+	public static void updateInput() {
+		Bdx.profiler.start("__scene");
+		GdxProcessor.currentTick++;
+		Bdx.fingers.clear();
+		for (Finger f : Bdx.allocatedFingers){
+			if (f.down() || f.up())
+				Bdx.fingers.add(f);
+		}
+		Bdx.profiler.stop("__scene");
+	}
+
 	public static void main(){
 
 		// --------- Auto reloading -------- //
@@ -248,17 +259,9 @@ public class Bdx{
 		Gdx.gl.glClear(GL20.GL_DEPTH_BUFFER_BIT);
 		profiler.stop("__render");
 
-		// -------- Update Input --------
+		updateInput();
 
 		time += delta() * timeSpeed;
-		++GdxProcessor.currentTick;
-		fingers.clear();
-		for (Finger f : allocatedFingers){
-			if (f.down() || f.up())
-				fingers.add(f);
-		}
-		profiler.stop("__scene");
-		// ------------------------------
 
 		for (Component c : components){
 			if (c.state != null)
