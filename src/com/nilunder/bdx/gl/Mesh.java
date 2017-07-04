@@ -252,6 +252,44 @@ public class Mesh implements Named {
 		return name + " <" + getClass().getName() + "> @" + Integer.toHexString(hashCode());
 	}
 
+	public float[][] getAABBPoints() {
+
+		float points[][] = new float[8][3];
+
+		Vector3f min = new Vector3f();
+		Vector3f max = new Vector3f();
+
+		for (int m = 0; m < materials.size(); m++) {
+
+			for (int i = 0; i < getVertexCount(); i++) {
+
+				Vector3f pos = vertPos(m, i);
+
+				min.x = Math.min(min.x, pos.x);
+				min.y = Math.min(min.y, pos.y);
+				min.z = Math.min(min.z, pos.z);
+
+				max.x = Math.max(max.x, pos.x);
+				max.y = Math.max(max.y, pos.y);
+				max.z = Math.max(max.z, pos.z);
+
+			}
+
+		}
+
+		points[0] = new float[]{min.x, min.y, min.z};
+		points[1] = new float[]{max.x, min.y, min.z};
+		points[2] = new float[]{min.x, max.y, min.z};
+		points[3] = new float[]{min.x, min.y, max.z};
+		points[4] = new float[]{max.x, max.y, min.z};
+		points[5] = new float[]{min.x, max.y, max.z};
+		points[6] = new float[]{max.x, min.y, max.z};
+		points[7] = new float[]{max.x, max.y, max.z};
+
+		return points;
+
+	}
+
 	// Also UV, Normal, and Transforms (and possibly "do this to all" versions that don't use transforms?)
 
 }
