@@ -1,6 +1,8 @@
 package com.nilunder.bdx.utils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.vecmath.Vector3f;
 
@@ -64,6 +66,74 @@ public class Random{
 				Random.random(0, 1),
 				Random.random(0, 1),
 				Random.random(0, 1));
+	}
+
+	public static <T> ArrayList<T> selection(int minNum, int maxNum, T[] args, boolean repeats) {
+
+		ArrayList<T> out = new ArrayList<T>();
+
+		ArrayList<T> interim = new ArrayList<T>();
+
+		Collections.addAll(interim, args);
+
+		for (int i = 0; i < Math.floor(random(minNum, maxNum + 1)); i++) {
+			if (interim.size() == 0)
+				break;
+			T ch = choice(interim);
+			if (!repeats)
+				interim.remove(ch);
+			out.add(ch);
+		}
+
+		return out;
+
+	}
+
+	public static <T> ArrayList<T> selection(int minNum, int maxNum, T[] args) {
+		return selection(minNum, maxNum, args, false);
+	}
+
+	public static <T> ArrayList<T> selection(int num, T[] args) {
+		return selection(num, num, args, false);
+	}
+
+	@SafeVarargs
+	public static <T> ArrayList<T> selection(T... args) {
+		return selection(1, args.length, args, false);
+	}
+
+	public static <T> ArrayList<T> selection(int minNum, int maxNum, List<T> args, boolean repeats) {
+
+		ArrayList<T> out = new ArrayList<T>();
+
+		ArrayList<T> interim = new ArrayList<T>();
+
+		interim.addAll(args);
+
+		for (int i = 0; i < Math.floor(random(minNum, maxNum + 1)); i++) {
+
+			if (interim.size() == 0)
+				break;
+			T ch = choice(interim);
+			if (!repeats)
+				interim.remove(ch);
+			out.add(ch);
+		}
+
+		return out;
+
+	}
+
+	public static <T> ArrayList<T> selection(int minNum, int maxNum, List<T> args) {
+		return selection(minNum, maxNum, args, false);
+	}
+
+	public static <T> ArrayList<T> selection(int num, List<T> args) {
+		return selection(num, num, args, false);
+	}
+
+	public static <T> ArrayList<T> selection(List<T> args) {
+		return selection(1, args.size(), args, false);
 	}
 
 }
